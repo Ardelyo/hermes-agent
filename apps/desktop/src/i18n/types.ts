@@ -426,7 +426,6 @@ export interface Translations {
       justNowSuffix: string
       automaticUpdates: string
       automaticUpdatesDesc: string
-      branchCommit: (branch: string, commit: string) => string
       never: string
       justNow: string
       minAgo: (count: number) => string
@@ -1723,6 +1722,14 @@ export interface Translations {
     tryAgain: string
     notAvailableTitle: string
     unsupportedMessage: string
+    versionDetailsTitle: string
+    versionDetailsBody: string
+    versionDetailsVersion: string
+    versionDetailsBaseVersion: string
+    versionDetailsBranch: string
+    versionDetailsCommit: string
+    versionDetailsDirty: string
+    versionDetailsDirtyUnknown: string
     connectionRetry: string
     latestBody: string
     latestBodyBackend: string
