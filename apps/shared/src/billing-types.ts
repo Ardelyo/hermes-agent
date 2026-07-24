@@ -122,6 +122,31 @@ export interface BillingCardInfo {
   resolved_via?: null | string
 }
 
+/**
+ * The org's payment method on file as a typed union — additive companion to
+ * `card` (which stays populated when the method is a card, so existing
+ * consumers keep working). Sent by newer gateways only; older gateways omit
+ * the field entirely, so consumers must treat absence as "not provided",
+ * not "no payment method". A future kind (an unknown string) must degrade
+ * safely — keep a fallback branch, same convention as BillingRefusalCode.
+ */
+export type BillingPaymentMethod =
+  | {
+      kind: 'card'
+      brand: string
+      last4: string
+      /** Wallet that wrapped the card (e.g. "apple_pay", "google_pay"), if any. */
+      wallet: string | null
+      /** Card-resolution rung ("subPin" | "customerDefault" | "autoRefill") or null. */
+      resolved_via: null | string
+    }
+  | {
+      kind: 'link'
+      /** Link displays as the account email; can be absent on the Stripe side. */
+      email: null | string
+      resolved_via: null | string
+    }
+
 export interface BillingMonthlyCap {
   is_default_ceiling: boolean
   limit_display: string
@@ -159,6 +184,9 @@ export interface BillingStateResponse {
   can_change_plan?: boolean
   can_charge: boolean
   card: BillingCardInfo | null
+  // Typed payment-method union (newer gateways only); `card` remains the
+  // compatibility field and stays populated for kind "card".
+  payment_method?: BillingPaymentMethod | null
   charge_presets: string[]
   charge_presets_display: string[]
   cli_billing_enabled: boolean
