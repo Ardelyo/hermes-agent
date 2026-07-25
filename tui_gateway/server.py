@@ -8687,14 +8687,32 @@ def _serialize_billing_state(state) -> dict:
     payment_method = None
     if state.payment_method is not None:
         pm = state.payment_method
-        payment_method = {
-            "kind": pm.kind,
-            "brand": pm.brand,
-            "last4": pm.last4,
-            "wallet": pm.wallet,
-            "email": pm.email,
-            "resolved_via": pm.resolved_via,
-        }
+        # Send only the keys that belong to this kind. Emitting every key with
+        # nulls would contradict the shared type, where each kind declares its
+        # own fields — a client checking `'brand' in pm` would read every Link
+        # method as a card.
+        if pm.kind == "card" and pm.brand and pm.last4:
+            payment_method = {
+                "kind": "card",
+                "brand": pm.brand,
+                "last4": pm.last4,
+                "wallet": pm.wallet,
+                "resolved_via": pm.resolved_via,
+            }
+        elif pm.kind == "link":
+            payment_method = {
+                "kind": "link",
+                "email": pm.email,
+                "resolved_via": pm.resolved_via,
+            }
+        else:
+            # A kind this gateway predates, or a card missing the fields that
+            # make it renderable. Pass the kind through so clients can say
+            # something honest, and let them fall back on everything else.
+            payment_method = {
+                "kind": pm.kind,
+                "resolved_via": pm.resolved_via,
+            }
     monthly_cap = None
     if state.monthly_cap is not None:
         mc = state.monthly_cap

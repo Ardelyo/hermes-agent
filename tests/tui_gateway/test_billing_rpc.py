@@ -67,9 +67,6 @@ def test_billing_state_serializes_decimals_as_strings(monkeypatch):
     }
     assert res["payment_method"] == {
         "kind": "link",
-        "brand": None,
-        "last4": None,
-        "wallet": None,
         "email": "billing@example.com",
         "resolved_via": "customerDefault",
     }
@@ -84,6 +81,64 @@ def test_billing_state_fail_open(monkeypatch):
     monkeypatch.setattr(bv, "build_billing_state", _boom)
     res = _call("billing.state", {})
     assert res["ok"] is True and res["logged_in"] is False
+
+
+@pytest.mark.parametrize(
+    "raw_payment_method,expected",
+    [
+        (
+            {
+                "kind": "card",
+                "brand": "visa",
+                "last4": "4242",
+                "wallet": "apple_pay",
+                "paymentMethodId": "pm_card",
+                "resolvedVia": "subPin",
+            },
+            {
+                "kind": "card",
+                "brand": "visa",
+                "last4": "4242",
+                "wallet": "apple_pay",
+                "resolved_via": "subPin",
+            },
+        ),
+        (
+            {
+                "kind": "link",
+                "email": "billing@example.com",
+                "resolvedVia": "customerDefault",
+            },
+            {
+                "kind": "link",
+                "email": "billing@example.com",
+                "resolved_via": "customerDefault",
+            },
+        ),
+        # A kind added after this gateway shipped: forwarded by name only.
+        (
+            {"kind": "future_method", "resolvedVia": "subPin"},
+            {"kind": "future_method", "resolved_via": "subPin"},
+        ),
+    ],
+)
+def test_billing_state_carries_payment_method_from_server_to_client(
+    monkeypatch, raw_payment_method, expected
+):
+    payload = {
+        "org": {"id": "org_1", "name": "Acme", "role": "OWNER"},
+        "balanceUsd": "10",
+        "paymentMethod": raw_payment_method,
+    }
+    monkeypatch.setattr(
+        bv,
+        "build_billing_state",
+        lambda *a, **kw: bv.billing_state_from_payload(payload),
+    )
+
+    res = _call("billing.state", {})
+
+    assert res["payment_method"] == expected
 
 
 def test_billing_state_serializes_absent_payment_method(monkeypatch):

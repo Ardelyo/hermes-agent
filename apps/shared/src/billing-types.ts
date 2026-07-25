@@ -146,6 +146,14 @@ export type BillingPaymentMethod =
       email: null | string
       resolved_via: null | string
     }
+  | {
+      /**
+       * A kind this client predates. The gateway sends the name and nothing
+       * else, so render something neutral rather than assuming a shape.
+       */
+      kind: string & {}
+      resolved_via: null | string
+    }
 
 export interface BillingMonthlyCap {
   is_default_ceiling: boolean
