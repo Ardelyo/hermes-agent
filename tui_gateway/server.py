@@ -8684,6 +8684,17 @@ def _serialize_billing_state(state) -> dict:
             "display": state.card.display,
             "resolved_via": state.card.resolved_via,
         }
+    payment_method = None
+    if state.payment_method is not None:
+        pm = state.payment_method
+        payment_method = {
+            "kind": pm.kind,
+            "brand": pm.brand,
+            "last4": pm.last4,
+            "wallet": pm.wallet,
+            "email": pm.email,
+            "resolved_via": pm.resolved_via,
+        }
     monthly_cap = None
     if state.monthly_cap is not None:
         mc = state.monthly_cap
@@ -8733,6 +8744,7 @@ def _serialize_billing_state(state) -> dict:
         "min_usd": _s(state.min_usd),
         "max_usd": _s(state.max_usd),
         "card": card,
+        "payment_method": payment_method,
         "monthly_cap": monthly_cap,
         "auto_reload": auto_reload,
         "portal_url": state.portal_url,

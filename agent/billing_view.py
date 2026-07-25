@@ -108,6 +108,16 @@ class CardInfo:
 
 
 @dataclass(frozen=True)
+class PaymentMethodInfo:
+    kind: str
+    brand: Optional[str] = None
+    last4: Optional[str] = None
+    wallet: Optional[str] = None
+    email: Optional[str] = None
+    resolved_via: Optional[str] = None
+
+
+@dataclass(frozen=True)
 class MonthlyCap:
     limit_usd: Optional[Decimal] = None
     spent_this_month_usd: Optional[Decimal] = None
@@ -150,6 +160,7 @@ class BillingState:
     min_usd: Optional[Decimal] = None
     max_usd: Optional[Decimal] = None
     card: Optional[CardInfo] = None
+    payment_method: Optional[PaymentMethodInfo] = None
     monthly_cap: Optional[MonthlyCap] = None
     auto_reload: Optional[AutoReload] = None
     portal_url: Optional[str] = None
@@ -199,6 +210,27 @@ def _parse_card(raw: Any) -> Optional[CardInfo]:
     if not isinstance(resolved_via, str):
         resolved_via = None
     return CardInfo(brand=brand, last4=last4, resolved_via=resolved_via)
+
+
+def _parse_payment_method(raw: Any) -> Optional[PaymentMethodInfo]:
+    if not isinstance(raw, dict):
+        return None
+    kind = raw.get("kind")
+    if not isinstance(kind, str):
+        return None
+
+    def _optional_string(key: str) -> Optional[str]:
+        value = raw.get(key)
+        return value if isinstance(value, str) else None
+
+    return PaymentMethodInfo(
+        kind=kind,
+        brand=_optional_string("brand"),
+        last4=_optional_string("last4"),
+        wallet=_optional_string("wallet"),
+        email=_optional_string("email"),
+        resolved_via=_optional_string("resolvedVia"),
+    )
 
 
 def _parse_monthly_cap(raw: Any) -> Optional[MonthlyCap]:
@@ -274,6 +306,7 @@ def billing_state_from_payload(
         min_usd=parse_money(bounds.get("minUsd")),
         max_usd=parse_money(bounds.get("maxUsd")),
         card=_parse_card(payload.get("card")),
+        payment_method=_parse_payment_method(payload.get("paymentMethod")),
         monthly_cap=_parse_monthly_cap(payload.get("monthlyCap")),
         auto_reload=_parse_auto_reload(payload.get("autoReload")),
         portal_url=portal_url,
