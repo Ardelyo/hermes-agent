@@ -123,12 +123,22 @@ export interface BillingCardInfo {
 }
 
 /**
- * The org's payment method on file as a typed union — additive companion to
- * `card` (which stays populated when the method is a card, so existing
- * consumers keep working). Sent by newer gateways only; older gateways omit
- * the field entirely, so consumers must treat absence as "not provided",
- * not "no payment method". A future kind (an unknown string) must degrade
- * safely — keep a fallback branch, same convention as BillingRefusalCode.
+ * The org's payment method on file.
+ *
+ * This is the authoritative field. `card` is a lossy older view of the same
+ * thing: it is populated only when the method is a card, and is null for
+ * every other kind — so `!card` does NOT mean "no payment method on file".
+ * A surface that gates on `card` alone will tell a Link customer they have
+ * nothing on file.
+ *
+ * Older gateways omit this field entirely, so absence means "this gateway
+ * didn't say", not "nothing on file".
+ *
+ * A kind this client predates arrives as `unknown` rather than as its real
+ * name, which keeps `kind` narrowable — every arm is a literal, so
+ * `if (pm.kind === 'card')` gives you the card fields. (The `string & {}`
+ * trick used by BillingRefusalCode does not work here: on an object union it
+ * makes the discriminant non-literal and defeats narrowing for every arm.)
  */
 export type BillingPaymentMethod =
   | {
@@ -147,11 +157,9 @@ export type BillingPaymentMethod =
       resolved_via: null | string
     }
   | {
-      /**
-       * A kind this client predates. The gateway sends the name and nothing
-       * else, so render something neutral rather than assuming a shape.
-       */
-      kind: string & {}
+      kind: 'unknown'
+      /** What the server actually called it, for logs and neutral copy. */
+      raw_kind: string
       resolved_via: null | string
     }
 

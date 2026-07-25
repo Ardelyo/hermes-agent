@@ -115,10 +115,11 @@ def test_billing_state_fail_open(monkeypatch):
                 "resolved_via": "customerDefault",
             },
         ),
-        # A kind added after this gateway shipped: forwarded by name only.
+        # A kind added after this gateway shipped: normalised to "unknown",
+        # keeping the real name for logs and neutral copy.
         (
             {"kind": "future_method", "resolvedVia": "subPin"},
-            {"kind": "future_method", "resolved_via": "subPin"},
+            {"kind": "unknown", "raw_kind": "future_method", "resolved_via": "subPin"},
         ),
     ],
 )

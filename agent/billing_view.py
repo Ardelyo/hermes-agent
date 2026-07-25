@@ -109,12 +109,18 @@ class CardInfo:
 
 @dataclass(frozen=True)
 class PaymentMethodInfo:
+    """The payment method on file. `kind` is "card", "link", or "unknown"
+    — anything else is normalised to "unknown" at parse time, so consumers
+    only ever see fields that belong to the kind they are looking at."""
+
     kind: str
     brand: Optional[str] = None
     last4: Optional[str] = None
     wallet: Optional[str] = None
     email: Optional[str] = None
     resolved_via: Optional[str] = None
+    #: What the server called it, when we did not recognise the kind.
+    raw_kind: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -223,13 +229,27 @@ def _parse_payment_method(raw: Any) -> Optional[PaymentMethodInfo]:
         value = raw.get(key)
         return value if isinstance(value, str) else None
 
+    resolved_via = _optional_string("resolvedVia")
+    brand = _optional_string("brand")
+    last4 = _optional_string("last4")
+    # Settle the kind here, the way _parse_card settles a card, so nothing
+    # downstream has to re-check which fields this kind is allowed to have.
+    if kind == "card" and brand and last4:
+        return PaymentMethodInfo(
+            kind="card",
+            brand=brand,
+            last4=last4,
+            wallet=_optional_string("wallet"),
+            resolved_via=resolved_via,
+        )
+    if kind == "link":
+        return PaymentMethodInfo(
+            kind="link",
+            email=_optional_string("email"),
+            resolved_via=resolved_via,
+        )
     return PaymentMethodInfo(
-        kind=kind,
-        brand=_optional_string("brand"),
-        last4=_optional_string("last4"),
-        wallet=_optional_string("wallet"),
-        email=_optional_string("email"),
-        resolved_via=_optional_string("resolvedVia"),
+        kind="unknown", raw_kind=kind, resolved_via=resolved_via
     )
 
 
