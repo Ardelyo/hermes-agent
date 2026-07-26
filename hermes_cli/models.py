@@ -294,9 +294,11 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "gemini-2.5-pro",
     ],
     "gemini": [
+        "gemini-3.6-flash",
         "gemini-3.1-pro-preview",
         "gemini-3-pro-preview",
         "gemini-3.5-flash",
+        "gemini-3.5-flash-lite",
         "gemini-3.1-flash-lite-preview",
     ],
     "zai": [
@@ -569,9 +571,11 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     # Model IDs use the "google/" publisher prefix Vertex's openapi
     # endpoint expects (see hermes_cli/model_setup_flows.py).
     "vertex": [
+        "google/gemini-3.6-flash",
         "google/gemini-3.1-pro-preview",
         "google/gemini-3-pro-preview",
         "google/gemini-3.5-flash",
+        "google/gemini-3.5-flash-lite",
         "google/gemini-3-flash-preview",
         "google/gemini-3.1-flash-lite-preview",
     ],
