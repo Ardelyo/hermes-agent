@@ -1718,7 +1718,7 @@ def resolve_runtime_provider(
     if requested_provider in ("vertex", "google-vertex", "vertex-ai", "gcp-vertex", "vertexai"):
         from agent.vertex_adapter import get_vertex_config
 
-        token, base_url = get_vertex_config()
+        token, base_url = get_vertex_config(model=target_model)
         if not token or not base_url:
             raise AuthError(
                 "Vertex AI credentials could not be resolved. Vertex uses "

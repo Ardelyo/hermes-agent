@@ -64,11 +64,23 @@ model:
 
 vertex:
   project_id: my-gcp-project   # blank → use the project embedded in the credentials
-  region: global               # "global" is required for the Gemini 3.x previews
+  region: global               # default fallback region for Vertex AI endpoints
+  model_regions:               # optional per-model dynamic region overrides
+    "gemini-2.5-pro": us-central1
+    "imagen-3.0-generate-002": us-central1
 ```
 
+:::tip Dynamic Region Selection
+Hermes dynamically resolves the Vertex endpoint region per model based on the following precedence:
+1. Explicit region parameter or `VERTEX_REGION` environment variable.
+2. `VERTEX_MODEL_REGIONS` environment variable (JSON object or comma-separated `model=region`).
+3. Per-model `vertex.model_regions` mapping in `config.yaml`.
+4. Model-family default heuristics (e.g. `imagen*` models default to `us-central1`, `claude*` to `us-east5`).
+5. Default `vertex.region` in `config.yaml` or `global`.
+:::
+
 :::tip Environment variables win over config.yaml
-`VERTEX_PROJECT_ID` and `VERTEX_REGION` override the `vertex.project_id` / `vertex.region` values in `config.yaml`. Use them for per-shell overrides; keep the durable settings in `config.yaml`.
+`VERTEX_PROJECT_ID` and `VERTEX_REGION` override the `vertex.project_id` / `vertex.region` values in `config.yaml`. Use them for per-shell overrides; keep durable settings in `config.yaml`.
 :::
 
 ### How authentication works

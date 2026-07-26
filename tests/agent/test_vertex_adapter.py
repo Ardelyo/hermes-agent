@@ -230,3 +230,33 @@ def test_adc_failure_falls_back_to_service_account(monkeypatch, tmp_path):
     token, project = va.get_vertex_credentials()
     assert token == "ya29.FAKE"
     assert project == "sa-project"
+
+
+def test_dynamic_model_region_resolution(vertex_adapter, monkeypatch):
+    """Test dynamic region selection based on model name, config, and env vars."""
+    # 1. Family heuristics
+    assert vertex_adapter._resolve_region(model="google/gemini-3.6-flash") == "global"
+    assert vertex_adapter._resolve_region(model="imagen-3.0-generate-002") == "us-central1"
+    assert vertex_adapter._resolve_region(model="claude-3-7-sonnet@20250219") == "us-east5"
+
+    # 2. Config model_regions mapping
+    monkeypatch.setattr(
+        vertex_adapter, "_vertex_config",
+        lambda: {
+            "region": "global",
+            "model_regions": {
+                "gemini-2.5-pro": "us-central1",
+                "custom-model": "europe-west1",
+            },
+        },
+    )
+    assert vertex_adapter._resolve_region(model="gemini-2.5-pro") == "us-central1"
+    assert vertex_adapter._resolve_region(model="google/custom-model") == "europe-west1"
+
+    # 3. VERTEX_MODEL_REGIONS env var override
+    monkeypatch.setenv("VERTEX_MODEL_REGIONS", '{"custom-model": "asia-northeast1"}')
+    assert vertex_adapter._resolve_region(model="custom-model") == "asia-northeast1"
+
+    # 4. Explicit region param wins
+    assert vertex_adapter._resolve_region(explicit="europe-west4", model="custom-model") == "europe-west4"
+

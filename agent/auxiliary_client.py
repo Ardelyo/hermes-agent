@@ -3913,7 +3913,7 @@ def _refresh_provider_credentials(provider: str) -> bool:
             # auxiliary Vertex call keeps 401ing until process restart.
             from agent.vertex_adapter import get_vertex_config
 
-            token, base_url = get_vertex_config()
+            token, base_url = get_vertex_config(model=model)
             if not isinstance(token, str) or not token.strip():
                 return False
             if not isinstance(base_url, str) or not base_url.strip():
@@ -5500,14 +5500,9 @@ def resolve_provider_client(
                          "no GCP credentials found")
             return None, None
 
-        token, base_url = get_vertex_config()
-        if not token or not base_url:
-            logger.warning("resolve_provider_client: vertex requested but "
-                           "could not mint token / resolve project")
-            return None, None
-
         default_model = "google/gemini-3-flash-preview"
         final_model = _normalize_resolved_model(model or default_model, provider)
+        token, base_url = get_vertex_config(model=final_model)
         try:
             from openai import OpenAI
             client = OpenAI(api_key=token, base_url=base_url)

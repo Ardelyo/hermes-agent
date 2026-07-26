@@ -4818,7 +4818,7 @@ class AIAgent:
         try:
             from agent.vertex_adapter import get_vertex_config
 
-            token, base_url = get_vertex_config()
+            token, base_url = get_vertex_config(model=getattr(self, "model", None))
         except Exception as exc:
             logger.debug("Vertex credential refresh failed: %s", exc)
             return False

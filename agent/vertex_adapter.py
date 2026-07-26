@@ -63,15 +63,60 @@ def _vertex_config() -> dict:
         return {}
 
 
-def _resolve_region(explicit: Optional[str] = None) -> str:
-    """Region precedence: explicit arg > VERTEX_REGION env > config.yaml > default."""
-    if explicit:
-        return explicit
+def _resolve_region(explicit: Optional[str] = None, model: Optional[str] = None) -> str:
+    """Region precedence: explicit arg > VERTEX_REGION env > VERTEX_MODEL_REGIONS env > config.yaml model_regions > model family heuristic > config.yaml region > default."""
+    if explicit and str(explicit).strip():
+        return str(explicit).strip()
+
     env_region = (_get_secret("VERTEX_REGION") or "").strip()
     if env_region:
         return env_region
+
+    if model and str(model).strip():
+        m_clean = str(model).strip()
+
+        # 1. VERTEX_MODEL_REGIONS env var (JSON string or comma-separated k=v pairs)
+        env_model_regions = (_get_secret("VERTEX_MODEL_REGIONS") or "").strip()
+        if env_model_regions:
+            try:
+                import json
+                parsed = json.loads(env_model_regions)
+                if isinstance(parsed, dict):
+                    if m_clean in parsed:
+                        return str(parsed[m_clean]).strip()
+                    short_m = m_clean.split("/")[-1]
+                    if short_m in parsed:
+                        return str(parsed[short_m]).strip()
+            except Exception:
+                for pair in env_model_regions.split(","):
+                    if "=" in pair:
+                        k, v = pair.split("=", 1)
+                        if k.strip() in (m_clean, m_clean.split("/")[-1]):
+                            return v.strip()
+
+        # 2. Config model_regions mapping in config.yaml under vertex:
+        cfg = _vertex_config()
+        model_regions = cfg.get("model_regions")
+        if isinstance(model_regions, dict):
+            if m_clean in model_regions:
+                return str(model_regions[m_clean]).strip()
+            short_m = m_clean.split("/")[-1]
+            if short_m in model_regions:
+                return str(model_regions[short_m]).strip()
+            for pattern, r_val in model_regions.items():
+                if pattern in m_clean or pattern in short_m:
+                    return str(r_val).strip()
+
+        # 3. Model family heuristic for Vertex AI endpoints
+        m_lower = m_clean.lower()
+        if "imagen" in m_lower:
+            return "us-central1"
+        if "claude" in m_lower:
+            return "us-east5"
+
     cfg_region = str(_vertex_config().get("region") or "").strip()
     return cfg_region or DEFAULT_REGION
+
 
 
 def _resolve_project_override() -> Optional[str]:
@@ -202,15 +247,17 @@ def build_vertex_base_url(project_id: str, region: str = DEFAULT_REGION) -> str:
 def get_vertex_config(
     credentials_path: Optional[str] = None,
     region: Optional[str] = None,
+    model: Optional[str] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
     """Resolve (access_token, base_url) for Vertex AI, or (None, None) on failure."""
     token, project_id = get_vertex_credentials(credentials_path)
     if not token or not project_id:
         return None, None
 
-    effective_region = _resolve_region(region)
+    effective_region = _resolve_region(explicit=region, model=model)
     base_url = build_vertex_base_url(project_id, effective_region)
     return token, base_url
+
 
 
 def has_vertex_credentials() -> bool:
