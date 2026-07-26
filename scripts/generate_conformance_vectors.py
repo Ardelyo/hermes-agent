@@ -240,7 +240,10 @@ def generate(out_dir: Path) -> Dict[str, Any]:
             "vectors": vectors,
         }
         path = out_dir / f"{platform}.json"
-        path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+        path.write_text(
+            json.dumps(doc, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
         summary[platform] = len(vectors)
     return summary
 
