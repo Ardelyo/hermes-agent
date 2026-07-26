@@ -393,6 +393,14 @@ def normalize_model_for_provider(model_input: str, target_provider: str) -> str:
     if provider in _AGGREGATOR_PROVIDERS:
         return _prepend_vendor(name)
 
+    # --- Vertex AI: OpenAPI endpoint expects <publisher>/<model> ---
+    if provider == "vertex":
+        if "/" not in name:
+            if name.lower().startswith("claude"):
+                return f"anthropic/{name}"
+            return f"google/{name}"
+        return name
+
     # --- OpenCode Zen / OpenCode Go: flat-namespace resellers.
     #     Their /v1/models API returns bare IDs only (no vendor prefix), and
     #     the inference endpoint rejects vendor-prefixed names with HTTP 401
